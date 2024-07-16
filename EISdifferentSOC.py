@@ -3,45 +3,49 @@ import pybamm
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft
-import pickle
 from scipy.io import savemat
+from tqdm import tqdm
 
+from multiprocessing import Pool
 
 # Set up the model and parameters
 model = pybamm.lithium_ion.DFN(options={"surface form": "differential"}, name="DFN")
 parameter_values = pybamm.ParameterValues("Prada2013")
-C=50               #temperature in degrees celcius
-T_amb=273.15+C  #converting to Kelvin
-parameter_values["Ambient temperature [K]"] =T_amb 
-parameter_values["Initial temperature [K]"] =T_amb 
-frequencies = np.logspace(-2, 3, 50)
-N_frequencies=len(frequencies)
+C = 50  # temperature in degrees celcius
+T_amb = 273.15 + C  # converting to Kelvin
+parameter_values["Ambient temperature [K]"] = T_amb
+parameter_values["Initial temperature [K]"] = T_amb
+frequencies = np.logspace(-2, 3, 30)
+N_frequencies = len(frequencies)
 
 # EIS parameters
 I = 10 * 1e-3
-number_of_periods =150
+number_of_periods = 100
 samples_per_period = 30
+
 
 def current_function(t):
     return I * pybamm.sin(2 * np.pi * pybamm.InputParameter("Frequency [Hz]") * t)
 
+
 parameter_values["Current function [A]"] = current_function
 sim = pybamm.Simulation(
-    model, parameter_values=parameter_values, solver=pybamm.IDAKLUSolver()
+    model, parameter_values=parameter_values, solver=pybamm.ScipySolver()
 )
 
 # List of SOC values
 
-soc_values = np.arange(0.05, 1.00, 0.05)
-N_socs=len(soc_values)  #length of frequency vector
+soc_values = [0.5]  # np.arange(0.05, 1.00, 0.05)
+N_socs = len(soc_values)  # length of frequency vector
 
-impedances_soc = {}   # Initialize a dictionary to store impedance data for each SOC
-impedance_data=np.zeros((N_socs,N_frequencies),dtype=complex)    # data to be stored for the prject
-jj=0
+impedances_soc = {}  # Initialize a dictionary to store impedance data for each SOC
+impedance_data = np.zeros((N_socs, N_frequencies), dtype=complex)  # data to be stored for the prject
+jj = 0
+
 # Loop over SOC values
-for soc in soc_values:
+for soc in tqdm(soc_values):
     impedances_time = []
-    for frequency in frequencies:
+    for frequency in tqdm(frequencies):
         # Solve
         period = 1 / frequency
         dt = period / samples_per_period
@@ -58,14 +62,12 @@ for soc in soc_values:
         idx = np.argmax(np.abs(current_fft))
         impedance = -voltage_fft[idx] / current_fft[idx]
         impedances_time.append(impedance)
-    
+
     # Store the impedance data for this SOC
     impedances_soc[soc] = 1000 * np.array(impedances_time)
-    impedance_data[jj]=1000 * np.array(impedances_time)
-    print('iteration=',jj) #printing iteration number
-    jj=jj+1
+    impedance_data[jj] = 1000 * np.array(impedances_time)
+    jj = jj + 1
 
-  
 # Specify the file name
 filename = 'impedance_data_50degrees.mat'
 # Save the complex data to a .mat file
