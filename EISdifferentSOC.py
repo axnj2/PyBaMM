@@ -22,8 +22,8 @@ T_amb = 273.15 + C  # converting to Kelvin
 
 # Set the SOC
 soc = 0.5  # todo parametrize this
-number_of_periods = 30
-samples_per_period = 20
+number_of_periods = 100
+samples_per_period = 60
 
 
 def init():
@@ -39,7 +39,7 @@ def init():
 
     parameter_values["Current function [A]"] = current_function
     sim = pybamm.Simulation(
-        model, parameter_values=parameter_values, solver=pybamm.ScipySolver()
+        model, parameter_values=parameter_values, solver=pybamm.ScipySolver(atol=1e-9, rtol=1e-9)
     )
     end = time.time()
     init_time = end - start
