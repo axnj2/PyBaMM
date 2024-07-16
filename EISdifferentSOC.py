@@ -20,8 +20,8 @@ N_frequencies = len(frequencies)
 
 # EIS parameters
 I = 10 * 1e-3
-number_of_periods = 100
-samples_per_period = 30
+number_of_periods = 30
+samples_per_period = 20
 
 
 def current_function(t):
