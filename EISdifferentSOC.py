@@ -39,7 +39,7 @@ def init():
 
     parameter_values["Current function [A]"] = current_function
     sim = pybamm.Simulation(
-        model, parameter_values=parameter_values, solver=pybamm.ScipySolver(atol=1e-9, rtol=1e-9)
+        model, parameter_values=parameter_values, solver=pybamm.CasadiSolver(atol=1e-9, rtol=1e-9, mode="fast")
     )
     end = time.time()
     init_time = end - start
