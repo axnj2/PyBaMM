@@ -116,15 +116,15 @@ if __name__ == "__main__":
     impedance_matrix = concatenate_data(impedance)
     savemat(filename, {'Z': impedance_matrix, 'SOC': SOC_RANGE, 'Frequencies': frequencies, 'Temperatures': temps})
     # Plot all impedances with their corresponding labels
-    plt.figure()
-    cmap = plt.get_cmap('tab20')
-    for i, soc in enumerate(impedance[temps[0]].keys()):
-        plt.plot(impedance[temps[0]][soc].real, -impedance[temps[0]][soc].imag, marker='o',
-                 label=f'SOC = {round(soc * 100)}',
-                 color=cmap(i % 20))
-    plt.xlabel(r"$Z_\mathrm{Re}$ [mOhm]")
-    plt.ylabel(r"$-Z_\mathrm{Im}$ [mOhm]")
-    plt.legend()
+    # plt.figure()
+    # cmap = plt.get_cmap('tab20')
+    # for i, soc in enumerate(impedance[temps[0]].keys()):
+    #     plt.plot(impedance[temps[0]][soc].real, -impedance[temps[0]][soc].imag, marker='o',
+    #              label=f'SOC = {round(soc * 100)}',
+    #              color=cmap(i % 20))
+    # plt.xlabel(r"$Z_\mathrm{Re}$ [mOhm]")
+    # plt.ylabel(r"$-Z_\mathrm{Im}$ [mOhm]")
+    # plt.legend()
     # plt.show()
 
     # Optional: Plot the last simulation result variables
