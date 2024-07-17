@@ -1,5 +1,6 @@
 # in this code u can generate EIS plot for different SOCs; you can also choose the ambient temperature
 # original code by Ali Rahdarian
+# optimized by axnj2 (from 2h to 17s approximately, with higher precision)
 import itertools
 import os
 
@@ -21,18 +22,34 @@ def current_function(t):
 
 
 I_max = 10 * 1e-3
-C = 50  # temperature in degrees Celsius
-T_amb = 273.15 + C  # converting to Kelvin
 
 number_of_periods = 15
 samples_per_period = 5
 
 
-def init():
+def returnargs(args):
+    return args
+
+
+def concatenate_data(impData):
+    # return a 3D array with the impedance data
+    # the first dimension  the frequency
+    # the second dimension the SOC
+    # the third dimension the temperatures
+
+    # the input is a dictionary with the following structure
+    # impedance[temperature][SOC] = np.array(impedance values) of the different frequencies
+
+    return np.array([[impData[temp][soc] for soc in impData[temp]] for temp in impData])
+
+
+def init(temp):
     global sim
     # Set up the model and parameters
     model = pybamm.lithium_ion.DFN(options={"surface form": "differential"}, name="DFN")
     parameter_values = pybamm.ParameterValues("Prada2013")
+
+    T_amb = 273.15 + temp  # converting to Kelvin
 
     parameter_values["Ambient temperature [K]"] = T_amb
     parameter_values["Initial temperature [K]"] = T_amb
@@ -41,10 +58,6 @@ def init():
     sim = pybamm.Simulation(
         model, parameter_values=parameter_values, solver=pybamm.CasadiSolver(atol=1e-9, rtol=1e-9, mode="fast")
     )
-
-
-def return_args(soc, frequency):
-    return soc, frequency
 
 
 def simulate_frequency(soc, frequency):
@@ -69,56 +82,50 @@ def simulate_frequency(soc, frequency):
     return impedance
 
 
+def simulate_frequency_star(args):
+    return simulate_frequency(*args)
+
+
 if __name__ == "__main__":
     # Set the SOC
-    number_of_SOC = 19
+    number_of_SOC = 50
     SOC_RANGE = np.linspace(0.05, 0.95, number_of_SOC)
 
-    N_frequencies = 30
+    N_frequencies = 50
     frequencies = np.logspace(-2, 3, N_frequencies)
 
-    # List of SOC values
-    soc_values = [0.5]  # np.arange(0.05, 1.00, 0.05)
-    N_socs = len(soc_values)  # length of frequency vector
+    temps = np.linspace(0, 50, 10)  # Ambient temperature in degrees Celsius
 
-    impedances_soc = {}  # Initialize a dictionary to store impedance data for each SOC
-    impedance_data = np.zeros((N_socs, N_frequencies), dtype=complex)  # data to be stored for the project
+    impedance = {}  # Initialize a dictionary to store impedance data for each SOC
     jj = 0
 
-    # Loop over SOC values
-    for i in tqdm(range(1)):
-        with Pool(os.cpu_count(), initializer=init) as p:
-            pool_output = list(p.starmap(simulate_frequency, itertools.product(SOC_RANGE, frequencies)))
+    for temp in tqdm(temps, desc="Temperatures", leave=False):
 
-    for k in range(number_of_SOC):
-        impedances_soc[float(SOC_RANGE[k])] = pool_output[k * N_frequencies: (k + 1) * N_frequencies]
+        impedance[temp] = {}
+        with Pool(os.cpu_count(), initializer=init, initargs=(temp,)) as p:
+            pool_output = list(tqdm(p.imap(simulate_frequency_star, itertools.product(SOC_RANGE, frequencies)),
+                                    total=number_of_SOC * N_frequencies, desc="SOC and frequency pairs", leave=False))
 
-    pprint(impedances_soc)
-
-    # process_execution_time = [i[1] for i in pool_output]
-    # impedences_time = [i[0] for i in pool_output]
-    # init_times = [i[2] for i in pool_output]
-
-    # Store the impedance data for this SOC
-    # impedances_soc[soc] = 1000 * np.array(impedences_time)
-    # impedance_data[jj] = 1000 * np.array(impedences_time)
-    # jj = jj + 1
-
+        for k in range(number_of_SOC):
+            impedance[temp][float(SOC_RANGE[k])] = np.array(pool_output[k * N_frequencies: (k + 1) * N_frequencies])
     # pprint(process_execution_time)
     # pprint(init_times)
     # # Specify the file name
-    # filename = 'impedance_data_50degrees.mat'
+    filename = 'SimulationImpedanceData_DFN_model_Prada2013_LFP_param.mat'
     # # Save the complex data to a .mat file
-    # savemat(filename, {'impedance_data_50degrees': impedance_data})
+    impedance_matrix = concatenate_data(impedance)
+    savemat(filename, {'Z': impedance_matrix, 'SOC': SOC_RANGE, 'Frequencies': frequencies, 'Temperatures': temps})
     # Plot all impedances with their corresponding labels
     plt.figure()
     cmap = plt.get_cmap('tab20')
-    for i, (soc, data) in enumerate(impedances_soc.items()):
-        plt.plot(data.real, -data.imag, marker='o', label=f'SOC = {soc}', color=cmap(i % 20))
+    for i, soc in enumerate(impedance[temps[0]].keys()):
+        plt.plot(impedance[temps[0]][soc].real, -impedance[temps[0]][soc].imag, marker='o',
+                 label=f'SOC = {round(soc * 100)}',
+                 color=cmap(i % 20))
     plt.xlabel(r"$Z_\mathrm{Re}$ [mOhm]")
     plt.ylabel(r"$-Z_\mathrm{Im}$ [mOhm]")
     plt.legend()
-    plt.show()
+    # plt.show()
 
     # Optional: Plot the last simulation result variables
     #    sim.plot(output_variables=["Current [A]", "Terminal voltage [V]"])
