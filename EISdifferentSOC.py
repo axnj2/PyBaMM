@@ -39,12 +39,14 @@ def concatenate_data(impData):
 
     # the input is a dictionary with the following structure
     # impedance[temperature][SOC] = np.array(impedance values) of the different frequencies
-
-    return np.array([[impData[temp][soc] for soc in impData[temp]] for temp in impData])
+    arr = np.array([[impData[temp][soc] for soc in impData[temp]] for temp in impData])
+    return np.transpose(arr, (2, 1, 0))
 
 
 def init(temp):
     global sim
+    global ntemp
+    ntemp = temp
     # Set up the model and parameters
     model = pybamm.lithium_ion.DFN(options={"surface form": "differential"}, name="DFN")
     parameter_values = pybamm.ParameterValues("Prada2013")
@@ -88,13 +90,13 @@ def simulate_frequency_star(args):
 
 if __name__ == "__main__":
     # Set the SOC
-    number_of_SOC = 50
+    number_of_SOC = 5
     SOC_RANGE = np.linspace(0.05, 0.95, number_of_SOC)
 
-    N_frequencies = 50
+    N_frequencies = 10
     frequencies = np.logspace(-2, 3, N_frequencies)
 
-    temps = np.linspace(0, 50, 10)  # Ambient temperature in degrees Celsius
+    temps = np.linspace(0, 50, 2)  # Ambient temperature in degrees Celsius
 
     impedance = {}  # Initialize a dictionary to store impedance data for each SOC
     jj = 0
