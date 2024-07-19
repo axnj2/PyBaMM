@@ -116,7 +116,8 @@ if __name__ == "__main__":
     filename = 'SimulationImpedanceData_DFN_model_Prada2013_LFP_param.mat'
     # # Save the complex data to a .mat file
     impedance_matrix = concatenate_data(impedance)
-    savemat(filename, {'Z': impedance_matrix, 'SOC': SOC_RANGE, 'Frequencies': frequencies, 'Temperatures': temps})
+    savemat(filename, {'Z': impedance_matrix, 'SOC': SOC_RANGE, 'Frequencies': frequencies, 'Temperatures': temps,
+                       'Description': "Z contains the impedance values. where the axis are (frequency, SOC, temperature)."})
     # Plot all impedances with their corresponding labels
     # plt.figure()
     # cmap = plt.get_cmap('tab20')
