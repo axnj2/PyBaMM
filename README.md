@@ -1,4 +1,8 @@
+data set for LNMC is "Chen2020"
+
 # test that were made for multiprocessing
+
+
 
 for 1000 frequencies (15 periods and 5 samples per periods, 1e-9 precision) :
 
