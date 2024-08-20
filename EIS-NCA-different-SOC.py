@@ -1,6 +1,8 @@
-# in this code u can generate EIS plot for different SOCs; you can also choose the ambient temperature
+# in this code u can generate EIS plot for different SOCs; you can also choose the ambient temperature;
 # original code by Ali Rahdarian
 # optimized by axnj2 (from 2h to 17s approximately, with higher precision)
+
+# this file is set up to simulate a round 5 Ah 21 700 cell INR battery.
 import itertools
 import os
 
@@ -27,13 +29,9 @@ number_of_periods = 15
 samples_per_period = 5
 
 
-def returnargs(args):
-    return args
-
-
 def concatenate_data(impData):
     # return a 3D array with the impedance data
-    # the first dimension  the frequency
+    # the first dimension the frequency
     # the second dimension the SOC
     # the third dimension the temperatures
 
@@ -50,7 +48,7 @@ def init(temp):
     # Set up the model and parameters
     model = pybamm.lithium_ion.DFN(options={"surface form": "differential"}, name="DFN")
     parameter_values = pybamm.ParameterValues(
-        "Prada2013")  # https://docs.pybamm.org/en/latest/source/api/parameters/parameter_sets.html
+        "Chen2020")  # https://docs.pybamm.org/en/latest/source/api/parameters/parameter_sets.html
 
     T_amb = 273.15 + temp  # converting to Kelvin
 
@@ -91,13 +89,13 @@ def simulate_frequency_star(args):
 
 if __name__ == "__main__":
     # Set the SOC
-    number_of_SOC = 5
-    SOC_RANGE = np.linspace(0.05, 0.95, number_of_SOC)
+    number_of_SOC = 9  # like in Noel's data
+    SOC_RANGE = np.linspace(0.10, 0.90, number_of_SOC)
 
-    N_frequencies = 10
-    frequencies = np.logspace(-2, 3, N_frequencies)
+    N_frequencies = 76  # like in Noel's data
+    frequencies = np.logspace(-1.3, 1.9, N_frequencies)  # 0.05 to 80 Hz like in Noel's data
 
-    temps = np.linspace(0, 50, 2)  # Ambient temperature in degrees Celsius
+    temps = [5, 25]  # Ambient temperature in degrees Celsius
 
     impedance = {}  # Initialize a dictionary to store impedance data for each SOC
     jj = 0
@@ -114,7 +112,7 @@ if __name__ == "__main__":
     # pprint(process_execution_time)
     # pprint(init_times)
     # # Specify the file name
-    filename = 'SimulationImpedanceData_DFN_model_Prada2013_LFP_param.mat'
+    filename = 'SimulationImpedanceData_DFN_model_Chen2020_parameterSet_sameDataPoints-as-Noels.mat'
     # # Save the complex data to a .mat file
     impedance_matrix = concatenate_data(impedance)
     savemat(filename, {'Z':            impedance_matrix, 'SOC': SOC_RANGE, 'Frequencies': frequencies,
